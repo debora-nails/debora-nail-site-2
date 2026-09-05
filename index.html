@@ -1,955 +1,589 @@
-/* Débora Aparecida Nail Design — versão conectada ao Supabase */
-const SERVICES = [
-  ['Alongamento Mold F1',135,'Alongamento construído com molde F1, com estrutura personalizada e acabamento elegante.'],
-  ['Alongamento Fibra de Vidro',140,'Técnica de alongamento com fibra de vidro para um resultado delicado, estruturado e personalizado.'],
-  ['Banho de Gel',80,'Aplicação de gel sobre a unha natural para reforçar a estrutura e deixar um acabamento bonito.'],
-  ['Postiça Realista',35,'Unhas com visual natural e acabamento delicado, uma opção prática para o dia a dia.'],
-  ['Soft Gel',40,'Alongamento com tips de gel, com resultado leve, uniforme e elegante.'],
-  ['Manicure',24,'Cuidado das unhas das mãos, preparação, acabamento e esmaltação conforme escolha.'],
-  ['Pedicure',24,'Cuidado das unhas dos pés, preparação, acabamento e esmaltação conforme escolha.'],
-  ['Spa dos Pés',50,'Momento de cuidado e relaxamento para os pés, com pedicure incluso.'],
-  ['Plástica dos Pés',65,'Cuidado especial para deixar os pés com aparência mais cuidada e sensação de maciez.']
-];
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Débora Aparecida Nail Design — Clube VIP, serviços e agendamento.">
+  <title>Débora Nail | Clube VIP</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
 
-const supabaseLib = window.supabase || null;
-const cfg = window.SUPABASE_CONFIG || {};
-const createClient = supabaseLib && typeof supabaseLib.createClient === 'function'
-  ? supabaseLib.createClient.bind(supabaseLib)
-  : null;
+<header class="topbar">
+  <a class="brand" href="#inicio" aria-label="Débora Nail Clube VIP">
+    <span>Débora Nail <i>♡</i></span>
+    <small>CLUBE VIP</small>
+  </a>
 
-const supabaseReady = !!(
-  createClient &&
-  cfg.url &&
-  cfg.publishableKey &&
-  !cfg.publishableKey.includes('COLE_AQUI')
-);
+  <nav>
+    <a href="#inicio">Início</a>
+    <a href="#sobre">Sobre</a>
+    <a href="#servicos">Serviços</a>
+    <a href="#vip">Vantagens</a>
+    <a href="#galeria">Galeria</a>
+    <a href="#contato">Contato</a>
+  </nav>
 
-const supabase = supabaseReady ? createClient(cfg.url, cfg.publishableKey) : null;
+  <button class="btn btn-primary vip-top" id="openLogin">🔒 Área VIP</button>
+</header>
 
-let currentUser = null;
-let currentClient = null;
+<main>
 
-const SERVICE_IMAGES = {
-  0:['images/mold-f1-1.jpeg','images/mold-f1-2.jpeg'],
-  1:['images/fibra-1.jpeg','images/fibra-2.jpeg'],
-  2:['images/banho-gel-1.jpeg','images/banho-gel-2.jpeg'],
-  3:['images/postica-1.jpeg','images/postica-2.jpeg','images/postica-3.jpeg'],
-  4:['images/soft-gel-1.jpeg','images/soft-gel-2.jpeg'],
-  6:['images/pedicure-1.jpeg'],
-  8:['images/plastica-pes-1.jpeg','images/plastica-pes-2.jpeg']
-};
+<section id="inicio" class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">B E M - V I N D A  A O</p>
 
-const servicesGrid=document.getElementById('servicesGrid');
+    <h1>Clube VIP</h1>
 
-servicesGrid.innerHTML=SERVICES.map((s,i)=>{
-  const imgs=SERVICE_IMAGES[i]||[];
-
-  const preview=imgs.length
-    ? `<div class="service-images">${imgs.slice(0,2).map(src=>`<img src="${src}" alt="Exemplo de ${s[0]}" loading="lazy">`).join('')}</div>`
-    : '';
-
-  return `<article class="service">
-    ${preview}
-    <h3>${s[0]}</h3>
-    <p>${s[2]}</p>
-    <div class="price">
-      <span>R$ ${s[1].toFixed(2).replace('.',',')}</span>
-      <small>esmaltação em gel e decoração sem custo adicional</small>
+    <div class="script-title">
+      Débora Nail <span>♡</span>
     </div>
-    <button class="btn btn-ghost service-book" data-i="${i}" style="margin-top:15px">Agendar</button>
-  </article>`;
-}).join('');
 
-const serviceSelect=document.getElementById('bookingService');
-
-serviceSelect.innerHTML='<option value="">Selecione</option>'+
-  SERVICES.map((s,i)=>`<option value="${i}">${s[0]} — R$ ${s[1].toFixed(2).replace('.',',')}</option>`).join('');
-
-function openModal(id){
-  document.getElementById(id).classList.add('open');
-}
-
-function closeModal(id){
-  document.getElementById(id).classList.remove('open');
-}
-
-document.querySelectorAll('[data-close]').forEach(b=>{
-  b.onclick=()=>closeModal(b.dataset.close);
-});
-
-document.getElementById('openLogin').onclick=()=>openModal('loginModal');
-document.getElementById('heroVip').onclick=()=>openModal('loginModal');
-document.getElementById('vipLogin2').onclick=()=>openModal('loginModal');
-document.getElementById('heroBook').onclick=()=>openBooking();
-
-document.querySelectorAll('.service-book').forEach(b=>{
-  b.onclick=()=>{
-    serviceSelect.value=b.dataset.i;
-    openBooking();
-  };
-});
-
-document.getElementById('showRegister').onclick=()=>{
-  closeModal('loginModal');
-  openModal('registerModal');
-};
-
-function message(id,text){
-  const el=document.getElementById(id);
-  el.textContent=text;
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),5000);
-}
-
-function localToday(){
-  const d=new Date();
-  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
-  return d.toISOString().slice(0,10);
-}
-
-document.getElementById('bookingDate').min=localToday();
-
-async function requireLogin(){
-
-  if(!supabase){
-    message('bookingMessage','O site ainda precisa receber a chave publicável do Supabase.');
-    return false;
-  }
-
-  const {data:{session}}=await supabase.auth.getSession();
-
-  if(!session){
-    closeModal('bookingModal');
-    openModal('loginModal');
-    message('loginMessage','Entre na sua conta para agendar seu horário. 💗');
-    return false;
-  }
-
-  currentUser=session.user;
-
-  await loadClient();
-
-  if(currentClient){
-    document.getElementById('bookingName').value=currentClient.nome||'';
-    document.getElementById('bookingPhone').value=currentClient.whatsapp||'';
-  }
-
-  return true;
-}
-
-async function openBooking(){
-  if(await requireLogin()){
-    openModal('bookingModal');
-    await refreshTimes();
-  }
-}
-
-async function ensureClientFromAuth(fallback={}){
-
-  if(!supabase||!currentUser)return null;
-
-  const existing=await loadClient();
-
-  if(existing)return existing;
-
-  const nome=fallback.nome||currentUser.user_metadata?.nome||currentUser.user_metadata?.name||'';
-  const whatsapp=fallback.whatsapp||currentUser.user_metadata?.whatsapp||'';
-  const email=fallback.email||currentUser.email||'';
-
-  if(!nome)return null;
-
-  const {data,error}=await supabase
-    .from('clientes')
-    .insert({
-      nome,
-      whatsapp,
-      email,
-      user_id:currentUser.id
-    })
-    .select()
-    .single();
-
-  if(error){
-    console.error(error);
-    return null;
-  }
-
-  currentClient=data;
-  return data;
-}
-
-async function loadClient(){
-
-  if(!supabase||!currentUser)return null;
-
-  const {data,error}=await supabase
-    .from('clientes')
-    .select('*')
-    .eq('user_id',currentUser.id)
-    .maybeSingle();
-
-  if(error){
-    console.error(error);
-    return null;
-  }
-
-  currentClient=data;
-  return data;
-}
-
-async function refreshTimes(){
-
-  const date=document.getElementById('bookingDate').value;
-  const sel=document.getElementById('bookingTime');
-
-  if(!date){
-    sel.innerHTML='<option value="">Selecione uma data</option>';
-    return;
-  }
-
-  if(!supabase){
-    sel.innerHTML='<option value="">Configure o Supabase</option>';
-    return;
-  }
-
-  const [
-    {data:slots,error:sErr},
-    {data:bookings,error:bErr}
-  ]=await Promise.all([
-
-    supabase
-      .from('horarios')
-      .select('horario')
-      .eq('data',date)
-      .eq('disponivel',true)
-      .order('horario'),
-
-    supabase
-      .from('agendamentos')
-      .select('horario')
-      .eq('data',date)
-      .neq('status','cancelado')
-  ]);
-
-  if(sErr||bErr){
-    console.error(sErr||bErr);
-    sel.innerHTML='<option value="">Não foi possível carregar os horários</option>';
-    return;
-  }
-
-  const booked=new Set(
-    (bookings||[]).map(x=>x.horario)
-  );
-
-  const times=(slots||[])
-    .map(x=>String(x.horario).slice(0,5))
-    .filter(t=>!booked.has(t+':00')&&!booked.has(t));
-
-  sel.innerHTML=times.length
-    ? '<option value="">Selecione</option>'+
-      times.map(t=>`<option value="${t}">${t}</option>`).join('')
-    : '<option value="">Nenhum horário disponível</option>';
-}
-
-document.getElementById('bookingDate').onchange=refreshTimes;
-
-document.getElementById('bookingForm').onsubmit=async e=>{
-
-  e.preventDefault();
-
-  if(!supabase||!currentUser){
-    message('bookingMessage','Entre na sua conta para continuar.');
-    return;
-  }
-
-  await loadClient();
-
-  if(!currentClient){
-    message('bookingMessage','Seu cadastro ainda não foi encontrado. Saia e entre novamente.');
-    return;
-  }
-
-  const date=document.getElementById('bookingDate').value;
-  const time=document.getElementById('bookingTime').value;
-  const s=SERVICES[+serviceSelect.value];
-
-  if(!date||!time||!s)return;
-
-  const {error}=await supabase
-    .from('agendamentos')
-    .insert({
-      cliente_id:currentClient.id,
-      servico:s[0],
-      data:date,
-      horario:time,
-      status:'confirmado'
-    });
-
-  if(error){
-
-    if(error.code==='23505'){
-      message('bookingMessage','Esse horário acabou de ser ocupado. Escolha outro.');
-    }else{
-      console.error(error);
-      message('bookingMessage','Não foi possível confirmar o agendamento. Tente novamente.');
-    }
-
-    await refreshTimes();
-    return;
-  }
-
-  message(
-    'bookingMessage',
-    'Agendamento confirmado! 💗 O horário ficou reservado para você.'
-  );
-
-  e.target.reset();
-
-  document.getElementById('bookingDate').min=localToday();
-
-  await refreshTimes();
-};
-
-document.getElementById('registerForm').onsubmit=async e=>{
-
-  e.preventDefault();
-
-  if(!supabase){
-    message(
-      'registerMessage',
-      'Primeiro precisamos conectar o site ao Supabase.'
-    );
-    return;
-  }
-
-  const nome=document.getElementById('regName').value.trim();
-  const whatsapp=document.getElementById('regPhone').value.trim();
-  const email=document.getElementById('regEmail').value.trim().toLowerCase();
-  const password=document.getElementById('regPassword').value;
-
-  const {data,error}=await supabase.auth.signUp({
-    email,
-    password,
-    options:{
-      data:{
-        nome,
-        whatsapp
-      }
-    }
-  });
-
-  if(error){
-    message('registerMessage',error.message);
-    return;
-  }
-
-  const uid=data.user?.id;
-
-  if(uid){
-
-    const {error:pe}=await supabase
-      .from('clientes')
-      .insert({
-        nome,
-        whatsapp,
-        email,
-        user_id:uid
-      });
-
-    if(pe){
-      console.error(pe);
-
-      message(
-        'registerMessage',
-        'A conta foi criada, mas o cadastro de cliente precisa ser finalizado.'
-      );
-
-      return;
-    }
-  }
-
-  closeModal('registerModal');
-
-  if(data.session){
-
-    currentUser=data.session.user;
-
-    await loadClient();
-
-    showVip(currentClient);
-
-  }else{
-
-    message(
-      'loginMessage',
-      'Cadastro criado! Verifique seu e-mail para confirmar a conta e depois entre no site. 💗'
-    );
-  }
-
-  e.target.reset();
-};
-
-document.getElementById('loginForm').onsubmit=async e=>{
-
-  e.preventDefault();
-
-  if(!supabase){
-    message(
-      'loginMessage',
-      'Primeiro precisamos conectar o site ao Supabase.'
-    );
-    return;
-  }
-
-  const email=document
-    .getElementById('loginEmail')
-    .value
-    .trim()
-    .toLowerCase();
-
-  const pass=document.getElementById('loginPassword').value;
-
-  const {data,error}=await supabase.auth.signInWithPassword({
-    email,
-    password:pass
-  });
-
-  if(error){
-    message(
-      'loginMessage',
-      'E-mail ou senha incorretos, ou a conta ainda não foi confirmada.'
-    );
-    return;
-  }
-
-  currentUser=data.user;
-
-  await ensureClientFromAuth();
-
-  await loadClient();
-
-  closeModal('loginModal');
-
-  showVip(currentClient);
-
-  e.target.reset();
-};
-
-async function showVip(c){
-
-  if(!c){
-    message(
-      'loginMessage',
-      'Seu cadastro ainda não foi encontrado.'
-    );
-    return;
-  }
-
-  const {data:vip}=await supabase
-    .from('vip_fidelidade')
-    .select('*')
-    .eq('cliente_id',c.id)
-    .maybeSingle();
-
-  const points=Math.min(
-    10,
-    Math.max(0,vip?.pontos||0)
-  );
-
-  document.getElementById('vipWelcome').textContent=
-    `Olá, ${c.nome.split(' ')[0]}! 💗`;
-
-  document.getElementById('vipPoints').textContent=points;
-
-  const dots=document.getElementById('vipDots');
-
-  dots.innerHTML='';
-
-  for(let i=0;i<10;i++){
-    dots.innerHTML+=
-      `<span class="dot ${i<points?'filled':''}">${i+1}</span>`;
-  }
-
-  const expired=
-    vip?.data_expiracao &&
-    new Date(vip.data_expiracao+'T23:59:59')<new Date();
-
-  document.getElementById('vipBenefit').textContent=
-    points>=10&&!expired
-      ? '🎉 Você tem 60% de desconto disponível! Use o benefício em até 45 dias após completar os 10 pontos.'
-      : expired
-        ? 'O prazo do seu benefício terminou e os pontos precisam ser reiniciados.'
-        : 'Faltam '+(10-points)+' ponto(s) para liberar seu benefício de 60%.';
-
-  document.getElementById('vipHistory').innerHTML=
-    '<p class="tiny">Seu cartão mostra os pontos atuais. O histórico detalhado será ampliado no painel administrativo.</p>';
-
-  openModal('vipModal');
-}
-
-document.getElementById('logoutBtn').onclick=async()=>{
-
-  if(supabase){
-    await supabase.auth.signOut();
-  }
-
-  currentUser=null;
-  currentClient=null;
-
-  closeModal('vipModal');
-};
-
-function renderDemoDots(){
-
-  const d=document.getElementById('demoDots');
-
-  d.innerHTML='';
-
-  for(let i=0;i<10;i++){
-    d.innerHTML+=
-      `<span class="dot ${i<6?'filled':''}">${i+1}</span>`;
-  }
-
-  document.getElementById('demoPointText').textContent=
-    '6 de 10 pontos';
-}
-
-renderDemoDots();
-
-/* Admin: protegido pelo banco via is_admin(); não existe atalho público em produção. */
-
-async function openAdmin(){
-
-  if(!supabase)return;
-
-  const {data:{session}}=
-    await supabase.auth.getSession();
-
-  if(!session){
-    openModal('loginModal');
-    return;
-  }
-
-  currentUser=session.user;
-
-  await loadClient();
-
-  if(!currentClient?.is_admin){
-    message(
-      'loginMessage',
-      'Acesso administrativo não autorizado.'
-    );
-    return;
-  }
-
-  openModal('adminModal');
-
-  await renderAdmin();
-  await renderClients();
-}
-
-document.getElementById('adminDate').value=localToday();
-
-document.getElementById('adminDate').onchange=renderAdmin;
-
-document.getElementById('addTime').onclick=async()=>{
-
-  const date=document.getElementById('adminDate').value;
-  const time=document.getElementById('newTime').value;
-
-  if(!date||!time)return;
-
-  const {error}=await supabase
-    .from('horarios')
-    .upsert(
-      {
-        data:date,
-        horario:time,
-        disponivel:true
-      },
-      {
-        onConflict:'data,horario'
-      }
-    );
-
-  if(error){
-    message(
-      'bookingMessage',
-      'Não foi possível adicionar o horário.'
-    );
-
-    console.error(error);
-    return;
-  }
-
-  document.getElementById('newTime').value='';
-
-  await renderAdmin();
-};
-
-async function renderAdmin(){
-
-  if(!supabase)return;
-
-  const date=document.getElementById('adminDate').value;
-
-  const [
-    {data:slots},
-    {data:bookings}
-  ]=await Promise.all([
-
-    supabase
-      .from('horarios')
-      .select('*')
-      .eq('data',date)
-      .order('horario'),
-
-    supabase
-      .from('agendamentos')
-      .select('id,servico,data,horario,status,cliente_id')
-      .eq('data',date)
-      .order('horario')
-  ]);
-
-  document.getElementById('adminTimes').innerHTML=
-    (slots||[]).map(x=>
-      `<div class="time-row">
-        <span>${String(x.horario).slice(0,5)} ${x.disponivel?'— disponível':'— bloqueado'}</span>
-        <button class="danger" data-remove-time="${x.id}">Remover</button>
-      </div>`
-    ).join('') ||
-    '<p class="tiny">Nenhum horário cadastrado para este dia.</p>';
-
-  document.querySelectorAll('[data-remove-time]').forEach(b=>
-
-    b.onclick=async()=>{
-
-      await supabase
-        .from('horarios')
-        .delete()
-        .eq('id',b.dataset.removeTime);
-
-      await renderAdmin();
-    }
-
-  );
-
-  const ids=[
-    ...new Set(
-      (bookings||[]).map(x=>x.cliente_id)
-    )
-  ];
-
-  let clients=[];
-
-  if(ids.length){
-
-    const r=await supabase
-      .from('clientes')
-      .select('id,nome,whatsapp')
-      .in('id',ids);
-
-    clients=r.data||[];
-  }
-
-  const map=new Map(
-    clients.map(c=>[c.id,c])
-  );
-
-  document.getElementById('adminBookings').innerHTML=
-    (bookings||[]).map(b=>{
-
-      const c=map.get(b.cliente_id)||{};
-
-      return `<div class="booking-row">
-        <span>
-          <b>${String(b.horario).slice(0,5)}</b> — ${b.servico}
-          <br>
-          <small>${c.nome||''} • ${c.whatsapp||''}</small>
-        </span>
-        <button class="danger" data-cancel-book="${b.id}">Cancelar</button>
-      </div>`;
-
-    }).join('') ||
-    '<p class="tiny">Nenhum agendamento.</p>';
-
-  document.querySelectorAll('[data-cancel-book]').forEach(b=>
-
-    b.onclick=async()=>{
-
-      await supabase
-        .from('agendamentos')
-        .delete()
-        .eq('id',b.dataset.cancelBook);
-
-      await renderAdmin();
-      await refreshTimes();
-    }
-
-  );
-}
-
-async function renderClients(){
-
-  if(!supabase)return;
-
-  const {data}=await supabase
-    .from('clientes')
-    .select('id,nome,email,whatsapp,is_admin')
-    .order('nome');
-
-  const rows=data||[];
-
-  const vips=rows.length
-    ? (await supabase
-        .from('vip_fidelidade')
-        .select('cliente_id,pontos')).data||[]
-    : [];
-
-  const vm=new Map(
-    vips.map(v=>[v.cliente_id,v.pontos])
-  );
-
-  document.getElementById('adminClients').innerHTML=
-    rows.map(c=>
-      `<div class="client-row">
-        <div class="client-info">
-          <b>${c.nome}</b>
-          <small>${c.email} • ${c.whatsapp}</small>
+    <p class="lead">
+      Um espaço exclusivo para<br>
+      quem ama cuidar das unhas.
+    </p>
+
+    <div class="hero-actions">
+      <button class="btn btn-primary hero-main" id="heroBook">
+        Agendar atendimento
+      </button>
+
+      <button class="btn btn-ghost hero-secondary" id="heroVip">
+        Entrar na Área VIP
+      </button>
+    </div>
+
+    <div class="hero-points">
+      <span><b>♡</b> Atendimento<br>especial</span>
+      <span><b>▣</b> Agendamento<br>prático</span>
+      <span><b>☆</b> Programa<br>de fidelidade</span>
+    </div>
+  </div>
+
+  <div class="hero-photo-wrap hero-collage">
+    <img
+      class="hero-photo hero-photo-main"
+      src="images/debora-spa.jpeg"
+      alt="Débora em seu espaço de atendimento"
+    >
+
+    <img
+      class="hero-photo hero-photo-small hero-photo-left"
+      src="images/debora-studio.jpeg"
+      alt="Débora em seu studio"
+    >
+
+    <img
+      class="hero-photo hero-photo-small hero-photo-right"
+      src="images/debora-atendimento.jpeg"
+      alt="Débora durante um atendimento"
+    >
+
+    <div class="photo-note">
+      Mais que unhas,<br>
+      é sobre autoestima! ♡
+    </div>
+  </div>
+</section>
+
+<section class="feature-strip" aria-label="Destaques">
+  <div>
+    <span class="feature-icon">♡</span>
+    <strong>Beleza</strong>
+    <small>que cuida de você</small>
+  </div>
+
+  <div>
+    <span class="feature-icon">◇</span>
+    <strong>Qualidade</strong>
+    <small>em cada detalhe</small>
+  </div>
+
+  <div>
+    <span class="feature-icon">♡</span>
+    <strong>Clientes</strong>
+    <small>que se tornam amigas</small>
+  </div>
+</section>
+
+<section id="sobre" class="section about">
+  <div class="section-heading">
+    <p class="eyebrow">SOBRE MIM</p>
+    <h2>Um atendimento pensado para você</h2>
+  </div>
+
+  <div class="about-grid">
+    <img
+      src="images/debora-studio.jpeg"
+      alt="Débora em seu studio"
+    >
+
+    <div class="about-copy">
+      <p>
+        Olá! Meu nome é <strong>Débora</strong> e trabalho na área de
+        manicure e pedicure desde 2019.
+      </p>
+
+      <p>
+        Comecei atendendo com manicure e pedicure simples, indo até a casa
+        das clientes. Com o tempo, busquei novos conhecimentos, fiz cursos
+        e me especializei em unhas de gel.
+      </p>
+
+      <p>
+        Hoje tenho meu próprio studio, preparado para receber cada cliente
+        com cuidado, capricho e atenção aos detalhes.
+      </p>
+
+      <p>
+        Meu objetivo é que cada atendimento seja mais do que um procedimento:
+        seja um momento para você se cuidar, relaxar e sair se sentindo ainda
+        mais linda. 💗
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="servicos" class="section soft-bg">
+  <div class="section-heading center">
+    <p class="eyebrow">MEUS SERVIÇOS</p>
+    <h2>Escolha seu momento de beleza</h2>
+    <p>Procedimentos realizados com os materiais do studio.</p>
+  </div>
+
+  <div id="servicesGrid" class="cards"></div>
+
+  <div class="notice">
+    <strong>Informações importantes</strong>
+
+    <ul>
+      <li>
+        Não cobro valor adicional por esmaltação em gel nem por decoração.
+      </li>
+
+      <li>
+        Não trabalho com material trazido pela cliente. Utilizo os produtos
+        e materiais do studio para garantir o padrão e a segurança do serviço.
+      </li>
+
+      <li>
+        Manicure e pedicure mantêm o mesmo valor mesmo quando a cliente opta
+        por não esmaltar as unhas.
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="section vip-showcase">
+  <div class="vip-copy">
+    <p class="eyebrow">CLUBE VIP FIDELIDADE</p>
+
+    <h2>
+      Ser VIP é ter<br>
+      cuidados e privilégios.
+    </h2>
+
+    <p>
+      A cada atendimento realizado, você recebe <strong>1 ponto</strong>.
+      Ao completar <strong>10 pontos</strong>, ganha
+      <strong>60% de desconto</strong> em qualquer procedimento.
+    </p>
+
+    <button class="btn btn-primary" id="vipLogin2">
+      Ver meus pontos
+    </button>
+  </div>
+
+  <div class="vip-card">
+    <div class="card-head">
+      <span>Débora Nail</span>
+      <span>VIP FIDELIDADE</span>
+    </div>
+
+    <div class="card-title">
+      Seu cartão de fidelidade
+    </div>
+
+    <div class="dots" id="demoDots"></div>
+
+    <div class="card-bottom">
+      <span id="demoPointText">0 de 10 pontos</span>
+      <b>60% OFF</b>
+    </div>
+  </div>
+</section>
+
+<section id="vip" class="section vip-rules-section">
+  <div class="section-heading center">
+    <p class="eyebrow">VANTAGENS</p>
+    <h2>Mais carinho a cada visita</h2>
+  </div>
+
+  <div class="benefit-grid">
+    <article>
+      <span>✦</span>
+      <h3>Descontos especiais</h3>
+      <p>
+        10 pontos liberam 60% de desconto em qualquer procedimento.
+      </p>
+    </article>
+
+    <article>
+      <span>▣</span>
+      <h3>Agendamento prático</h3>
+      <p>
+        Escolha o serviço, a data e um horário disponível.
+      </p>
+    </article>
+
+    <article>
+      <span>♡</span>
+      <h3>Brindes e cuidado</h3>
+      <p>
+        Um espaço pensado para você se sentir especial.
+      </p>
+    </article>
+
+    <article>
+      <span>♢</span>
+      <h3>Atendimento personalizado</h3>
+      <p>
+        Seu cadastro, seus pontos e seu histórico ficam na sua Área VIP.
+      </p>
+    </article>
+  </div>
+
+  <div class="rules-line">
+    <div>
+      <b>01</b>
+      <strong>1 ponto</strong>
+      <small>por dia de atendimento</small>
+    </div>
+
+    <div>
+      <b>02</b>
+      <strong>10 pontos</strong>
+      <small>liberam 60% de desconto</small>
+    </div>
+
+    <div>
+      <b>03</b>
+      <strong>45 dias</strong>
+      <small>para usar o benefício</small>
+    </div>
+
+    <div>
+      <b>04</b>
+      <strong>Falta/aviso em cima da hora</strong>
+      <small>perde 1 ponto</small>
+    </div>
+  </div>
+</section>
+
+<section id="galeria" class="section gallery-section">
+  <div class="section-heading center">
+    <p class="eyebrow">GALERIA</p>
+    <h2>Um pouco do meu trabalho</h2>
+  </div>
+
+  <div id="galleryGrid" class="gallery"></div>
+</section>
+
+<section id="contato" class="section contact soft-bg">
+  <div>
+    <p class="eyebrow">CONTATO</p>
+
+    <h2>Vamos cuidar das suas unhas?</h2>
+
+    <p>
+      Atendimento de <strong>07h às 19h</strong>.
+    </p>
+
+    <p>
+      <strong>📍 Rua Claudionor de Souza, 75</strong><br>
+      Oratórios – MG<br>
+      <small>Na rua de baixo da antiga creche.</small>
+    </p>
+
+    <div class="contact-actions">
+      <a
+        class="btn btn-primary"
+        href="https://api.whatsapp.com/message/C2OR3OHEFZHZJ1?autoload=1&app_absent=0"
+        target="_blank"
+        rel="noopener"
+      >
+        Falar no WhatsApp
+      </a>
+
+      <a
+        class="btn btn-ghost"
+        href="https://www.instagram.com/perfectlynails02?igsh=cHRobnIwYnA0N2Zn&utm_source=qr"
+        target="_blank"
+        rel="noopener"
+      >
+        Instagram
+      </a>
+    </div>
+  </div>
+
+  <div class="rules-box">
+    <h3>Antes de agendar</h3>
+
+    <p>
+      ⏰ A tolerância máxima para atrasos é de
+      <strong>20 minutos</strong>.
+    </p>
+
+    <p>
+      💗 O agendamento é gratuito, mas contamos com a responsabilidade
+      de cada cliente para comparecer ou avisar com antecedência.
+    </p>
+
+    <h3>Formas de pagamento</h3>
+
+    <p>
+      Pix • Dinheiro
+      <small>(se precisar de troco, avise antes)</small>
+      • Cartão de débito e crédito
+      <small>(com acréscimo da maquininha)</small>
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div>
+    <span>Débora Nail</span>
+    <small>Mais que unhas, um momento só seu. ✨</small>
+  </div>
+
+  <a
+    href="https://api.whatsapp.com/message/C2OR3OHEFZHZJ1?autoload=1&app_absent=0"
+    target="_blank"
+    rel="noopener"
+  >
+    ♡ Falar no WhatsApp
+  </a>
+</footer>
+
+<div class="modal" id="bookingModal">
+  <div class="modal-box">
+    <button class="close" data-close="bookingModal">×</button>
+
+    <p class="eyebrow">AGENDAMENTO</p>
+    <h2>Escolha seu atendimento</h2>
+
+    <form id="bookingForm">
+      <label>
+        Serviço
+        <select id="bookingService" required></select>
+      </label>
+
+      <label>
+        Data
+        <input id="bookingDate" type="date" required>
+      </label>
+
+      <label>
+        Horário
+        <select id="bookingTime" required>
+          <option value="">Selecione uma data</option>
+        </select>
+      </label>
+
+      <label>
+        Nome
+        <input id="bookingName" required placeholder="Seu nome">
+      </label>
+
+      <label>
+        WhatsApp
+        <input id="bookingPhone" required placeholder="(00) 00000-0000">
+      </label>
+
+      <button class="btn btn-primary full">
+        Confirmar agendamento
+      </button>
+    </form>
+
+    <div id="bookingMessage" class="form-message"></div>
+  </div>
+</div>
+
+<div class="modal" id="loginModal">
+  <div class="modal-box small">
+    <button class="close" data-close="loginModal">×</button>
+
+    <p class="eyebrow">ÁREA VIP</p>
+    <h2>Entre na sua conta</h2>
+
+    <form id="loginForm">
+      <label>
+        E-mail
+        <input id="loginEmail" type="email" required>
+      </label>
+
+      <label>
+        Senha
+        <input id="loginPassword" type="password" required>
+      </label>
+
+      <button class="btn btn-primary full">
+        Entrar
+      </button>
+    </form>
+
+    <p class="tiny">
+      Ainda não tem cadastro?
+      <button class="text-btn" id="showRegister">
+        Criar minha conta
+      </button>
+    </p>
+
+    <div id="loginMessage" class="form-message"></div>
+  </div>
+</div>
+
+<div class="modal" id="registerModal">
+  <div class="modal-box small">
+    <button class="close" data-close="registerModal">×</button>
+
+    <p class="eyebrow">PRIMEIRO ACESSO</p>
+    <h2>Crie sua conta VIP</h2>
+
+    <form id="registerForm">
+      <label>
+        Nome
+        <input id="regName" required>
+      </label>
+
+      <label>
+        WhatsApp
+        <input id="regPhone" required>
+      </label>
+
+      <label>
+        E-mail
+        <input id="regEmail" type="email" required>
+      </label>
+
+      <label>
+        Senha
+        <input id="regPassword" type="password" minlength="6" required>
+      </label>
+
+      <button class="btn btn-primary full">
+        Criar conta
+      </button>
+    </form>
+
+    <div id="registerMessage" class="form-message"></div>
+  </div>
+</div>
+
+<div class="modal" id="vipModal">
+  <div class="modal-box vip-modal">
+    <button class="close" data-close="vipModal">×</button>
+
+    <p class="eyebrow">MINHA ÁREA VIP</p>
+
+    <h2 id="vipWelcome">Olá!</h2>
+
+    <div class="big-loyalty">
+      <div class="big-number" id="vipPoints">0</div>
+
+      <div>/10 pontos</div>
+
+      <div class="dots big" id="vipDots"></div>
+
+      <p id="vipBenefit">
+        Continue acumulando seus pontos. 💗
+      </p>
+    </div>
+
+    <div class="vip-history" id="vipHistory"></div>
+
+    <button class="btn btn-ghost full" id="logoutBtn">
+      Sair da conta
+    </button>
+  </div>
+</div>
+
+<div class="modal" id="adminModal">
+  <div class="modal-box admin-box">
+    <button class="close" data-close="adminModal">×</button>
+
+    <p class="eyebrow">PAINEL ADMINISTRATIVO</p>
+    <h2>Débora Nail — Controle</h2>
+
+    <div class="admin-tabs">
+      <button class="tab active" data-tab="agendaTab">
+        Agenda
+      </button>
+
+      <button class="tab" data-tab="clientesTab">
+        Clientes
+      </button>
+
+      <button class="tab" data-tab="galeriaTab">
+        Galeria
+      </button>
+    </div>
+
+    <div id="agendaTab" class="tab-content active">
+      <div class="admin-grid">
+
+        <div>
+          <h3>Configurar horários</h3>
+
+          <label>
+            Data
+            <input type="date" id="adminDate">
+          </label>
+
+          <div class="add-time">
+            <input type="time" id="newTime">
+            <button class="btn btn-primary" id="addTime">
+              Adicionar
+            </button>
+          </div>
+
+          <div id="adminTimes"></div>
         </div>
 
-        <div class="points-control">
-          <button data-point="${c.id}" data-delta="-1">−</button>
-          <b>${vm.get(c.id)||0}</b>
-          <button data-point="${c.id}" data-delta="1">+</button>
+        <div>
+          <h3>Agendamentos</h3>
+          <div id="adminBookings"></div>
         </div>
-      </div>`
-    ).join('') ||
-    '<p class="tiny">Ainda não há clientes cadastradas.</p>';
 
-  document.querySelectorAll('[data-point]').forEach(b=>
+      </div>
+    </div>
 
-    b.onclick=async()=>{
+    <div id="clientesTab" class="tab-content">
+      <div id="adminClients"></div>
+    </div>
 
-      const id=+b.dataset.point;
-      const delta=+b.dataset.delta;
+    <div id="galeriaTab" class="tab-content">
+      <h3>Adicionar fotos</h3>
 
-      const existing=vm.get(id)||0;
+      <input
+        id="galleryUpload"
+        type="file"
+        accept="image/*"
+        multiple
+      >
 
-      const next=Math.max(
-        0,
-        Math.min(10,existing+delta)
-      );
+      <div id="adminGallery" class="admin-gallery"></div>
+    </div>
 
-      const {error}=await supabase
-        .from('vip_fidelidade')
-        .upsert(
-          {
-            cliente_id:id,
-            pontos:next,
-            beneficio_usado:
-              next<10
-                ? false
-                : (existing>=10?false:false),
-            data_expiracao:
-              next>=10
-                ? new Date(
-                    Date.now()+45*86400000
-                  ).toISOString().slice(0,10)
-                : null
-          },
-          {
-            onConflict:'cliente_id'
-          }
-        );
+  </div>
+</div>
 
-      if(error){
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 
-        console.error(error);
-
-        message(
-          'loginMessage',
-          'Para usar este botão, a tabela VIP precisa ter uma linha única por cliente.'
-        );
-
-        return;
-      }
-
-      await renderClients();
-    }
-
-  );
-}
-
-/* Galeria estática nesta etapa; a próxima conexão será o Supabase Storage. */
-
-function renderGallery(){
-
-  const groups=[
-
-    [
-      'Fibra de vidro',
-      [
-        'images/fibra-1.jpeg',
-        'images/fibra-2.jpeg'
-      ]
-    ],
-
-    [
-      'Mold F1',
-      [
-        'images/mold-f1-1.jpeg',
-        'images/mold-f1-2.jpeg'
-      ]
-    ],
-
-    [
-      'Postiça Realista',
-      [
-        'images/postica-1.jpeg',
-        'images/postica-2.jpeg',
-        'images/postica-3.jpeg'
-      ]
-    ],
-
-    [
-      'Pedicure',
-      [
-        'images/pedicure-1.jpeg'
-      ]
-    ],
-
-    [
-      'Banho de Gel',
-      [
-        'images/banho-gel-1.jpeg',
-        'images/banho-gel-2.jpeg'
-      ]
-    ],
-
-    [
-      'Soft Gel',
-      [
-        'images/soft-gel-1.jpeg',
-        'images/soft-gel-2.jpeg'
-      ]
-    ],
-
-    [
-      'Plástica dos Pés',
-      [
-        'images/plastica-pes-1.jpeg',
-        'images/plastica-pes-2.jpeg'
-      ]
-    ],
-
-    [
-      'Studio',
-      [
-        'images/debora-spa.jpeg',
-        'images/debora-studio.jpeg',
-        'images/debora-atendimento.jpeg'
-      ]
-    ]
-
-  ];
-
-  document.getElementById('galleryGrid').innerHTML=
-
-    groups.map(([name,imgs])=>
-      `<div class="gallery-group">
-        <h3>${name}</h3>
-        <div class="gallery-row">
-          ${imgs.map(src=>
-            `<figure>
-              <img src="${src}" alt="${name} — Débora Nail" loading="lazy">
-            </figure>`
-          ).join('')}
-        </div>
-      </div>`
-    ).join('');
-
-  document.getElementById('adminGallery').innerHTML=
-    '<p class="tiny">As fotos dos trabalhos já estão incluídas no site. O envio de novas fotos pelo painel online será ativado na próxima etapa.</p>';
-}
-
-document.querySelectorAll('.tab').forEach(t=>
-
-  t.onclick=async()=>{
-
-    document.querySelectorAll('.tab')
-      .forEach(x=>x.classList.remove('active'));
-
-    document.querySelectorAll('.tab-content')
-      .forEach(x=>x.classList.remove('active'));
-
-    t.classList.add('active');
-
-    document.getElementById(t.dataset.tab)
-      .classList.add('active');
-
-    await renderAdmin();
-    await renderClients();
-    renderGallery();
-  }
-
-);
-
-/* Mantém o protótipo compatível: Ctrl+Shift+A só tenta abrir o painel se a conta for admin. */
-
-document.addEventListener('keydown',e=>{
-
-  if(
-    e.ctrlKey &&
-    e.shiftKey &&
-    e.key.toLowerCase()==='a'
-  ){
-    openAdmin();
-  }
-
-});
-
-(async()=>{
-
-  renderGallery();
-
-  if(!supabase){
-
-    console.warn(
-      'Supabase ainda não configurado: preencha config.js com a chave publicável.'
-    );
-
-    return;
-  }
-
-  const {data:{session}}=
-    await supabase.auth.getSession();
-
-  if(session){
-
-    currentUser=session.user;
-
-    await ensureClientFromAuth();
-
-    await loadClient();
-  }
-
-  supabase.auth.onAuthStateChange(
-    async(_event,session)=>{
-
-      currentUser=session?.user||null;
-
-      if(currentUser){
-
-        await ensureClientFromAuth();
-
-        await loadClient();
-
-      }else{
-
-        currentClient=null;
-      }
-    }
-  );
-
-})();
+</body>
+</html>
