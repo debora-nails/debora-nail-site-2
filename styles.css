@@ -25,6 +25,50 @@ footer{padding:34px 6vw;background:linear-gradient(135deg,#d65f7d,#a92f51);color
 .hero-collage .hero-photo-small{width:34%;height:235px;z-index:2;border-radius:28px}
 .hero-collage .hero-photo-left{left:0;bottom:35px}
 .hero-collage .hero-photo-right{right:0;bottom:0}
-.hero-collage .photo-note{z-index:3}
+.hero-collage .photo-note{z-index:3}.service-images{
+
+  display:grid;
+
+  grid-template-columns:repeat(2,1fr);
+
+  gap:8px;
+
+  height:210px;
+
+  margin:-25px -25px 20px;
+
+  overflow:hidden;
+
+  border-radius:22px 22px 0 0;
+
+}
+
+.service-images img{
+
+  width:100%;
+
+  height:210px;
+
+  object-fit:cover;
+
+  display:block;
+
+}
+
+@media(max-width:600px){
+
+  .service-images{
+
+    height:220px;
+
+  }
+
+  .service-images img{
+
+    height:220px;
+
+  }
+
+}
 @media(max-width:900px){.hero-collage{min-height:430px}.hero-collage .hero-photo-main{height:410px}.hero-collage .hero-photo-small{height:185px}}
 @media(max-width:640px){.hero-collage{min-height:430px}.hero-collage .hero-photo-main{width:74%;height:380px;right:2%}.hero-collage .hero-photo-small{width:40%;height:155px}.hero-collage .hero-photo-left{left:0;bottom:30px}.hero-collage .hero-photo-right{right:0;bottom:0}.hero-collage .photo-note{bottom:14px;font-size:11px}}
