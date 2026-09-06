@@ -1043,3 +1043,49 @@ select:focus{
     padding:30px 20px;
   }
 }
+/* Cartões dos serviços */
+.service-card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.service-card h3{
+  margin:0 0 8px;
+  font-family:Georgia,serif;
+  font-size:21px;
+  font-weight:400;
+  color:var(--text);
+}
+
+.service-card .service-description{
+  min-height:76px;
+  margin:0;
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+.service-card .service-images{
+  margin:18px -18px 0;
+}
+
+.service-card .service-bottom{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:18px;
+}
+
+.service-card .service-bottom strong{
+  font-size:20px;
+  color:var(--pink-dark);
+}
+
+.service-card .btn{
+  width:auto;
+}
